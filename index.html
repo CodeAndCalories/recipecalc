@@ -728,10 +728,12 @@ function calculateMacros() {
   const breakdown = [];
 
   rows.forEach(row => {
-    const nameInput = row.querySelector('input[type="text"]');
-    const amtInput = row.querySelector('input[type="number"]');
-    const unitSelect = row.querySelector('select');
-    if (!nameInput || !amtInput) return;
+    // Get the row ID number
+    const rowId = row.id.replace('ing-row-', '');
+    const nameInput = document.getElementById('ing-name-' + rowId);
+    const amtInput = document.getElementById('ing-amt-' + rowId);
+    const unitSelect = document.getElementById('ing-unit-' + rowId);
+    if (!nameInput || !amtInput || !unitSelect) return;
 
     const name = nameInput.value.trim();
     const amount = parseFloat(amtInput.value);
@@ -802,3 +804,4 @@ addIngredient();
 </script>
 </body>
 </html>
+
