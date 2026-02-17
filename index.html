@@ -459,6 +459,14 @@
   <!-- MACROS SECTION -->
   <div id="macros-section" class="section">
     <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Paste a Recipe</div>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">Copy & paste a recipe from any website and we'll try to extract the ingredients automatically.</p>
+      <textarea id="recipe-paste" placeholder="Example:&#10;2 cups all-purpose flour&#10;1 lb chicken breast&#10;3 tbsp olive oil&#10;2 eggs&#10;1/2 cup Greek yogurt..." rows="6" style="width:100%; padding:0.65rem 0.85rem; border:2px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.95rem; color:var(--text); resize:vertical; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <button class="calc-btn" onclick="parseRecipe()" style="margin-top:0.75rem; background:var(--green);">🔍 Extract Ingredients</button>
+      <div id="parse-status" style="display:none; margin-top:0.75rem; padding:0.6rem; border-radius:8px; font-size:0.85rem;"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title"><span class="icon">🥗</span> Recipe Ingredients</div>
       <div class="servings-row">
         <label>Servings:</label>
@@ -796,12 +804,152 @@ function switchTab(tab) {
   }
 }
 
+// ====== RECIPE PARSER ======
+function parseRecipe() {
+  const text = document.getElementById('recipe-paste').value.trim();
+  const status = document.getElementById('parse-status');
+  if (!text) {
+    status.style.display = 'block';
+    status.style.background = 'var(--red-light)';
+    status.style.color = 'var(--red)';
+    status.textContent = 'Please paste a recipe first!';
+    return;
+  }
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  // Unit aliases for matching
+  const unitMap = {
+    'cup':'cup','cups':'cup',
+    'tbsp':'tbsp','tablespoon':'tbsp','tablespoons':'tbsp',
+    'tsp':'tsp','teaspoon':'tsp','teaspoons':'tsp',
+    'oz':'oz','ounce':'oz','ounces':'oz',
+    'lb':'lb','lbs':'lb','pound':'lb','pounds':'lb',
+    'g':'g','gram':'g','grams':'g',
+    'kg':'kg','kilogram':'kg','kilograms':'kg',
+    'ml':'ml','milliliter':'ml','milliliters':'ml',
+    'l':'ml','liter':'ml','liters':'ml',
+    'clove':'piece','cloves':'piece','slice':'piece','slices':'piece',
+    'piece':'piece','pieces':'piece','large':'piece','medium':'piece','small':'piece',
+    'can':'piece','cans':'piece','bunch':'piece','head':'piece',
+    'pinch':'tsp','dash':'tsp',
+  };
+
+  // Fraction map
+  const fractionMap = {
+    '½':'0.5','⅓':'0.333','⅔':'0.667','¼':'0.25','¾':'0.75',
+    '⅛':'0.125','⅜':'0.375','⅝':'0.625','⅞':'0.875',
+    '⅕':'0.2','⅖':'0.4','⅗':'0.6','⅘':'0.8','⅙':'0.167','⅚':'0.833',
+  };
+
+  // Pattern: optional number (with fractions), optional unit, then ingredient name
+  const numberPattern = /^([\d½⅓⅔¼¾⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚/.\s-]+)/;
+  const unitPattern = new RegExp('^(' + Object.keys(unitMap).join('|') + ')\\b\\.?\\s*', 'i');
+
+  // Clear existing ingredients
+  document.getElementById('ingredients-list').innerHTML = '';
+  ingredientCount = 0;
+
+  let matched = 0;
+  let unmatched = [];
+
+  lines.forEach(line => {
+    // Clean up line - remove leading bullets, dashes, numbers with periods/parens
+    let clean = line.replace(/^[-•*▪▸►●○◦‣⁃]\s*/, '').replace(/^\d+[.)]\s*/, '').trim();
+    if (!clean || clean.length < 2) return;
+
+    // Skip lines that look like section headers or instructions
+    if (/^(for the|instructions|directions|steps|method|notes|preparation|preheat|cook |bake |mix |stir |add |place |set |let |serve|garnish)/i.test(clean)) return;
+    if (clean.length > 120) return; // probably an instruction, not an ingredient
+
+    let amount = null;
+    let unit = 'g';
+    let name = clean;
+
+    // Try to extract a number
+    const numMatch = clean.match(numberPattern);
+    if (numMatch) {
+      let numStr = numMatch[1].trim();
+      // Replace unicode fractions
+      for (const [frac, val] of Object.entries(fractionMap)) {
+        numStr = numStr.replace(frac, val);
+      }
+      // Handle "1/2" style fractions
+      numStr = numStr.replace(/(\d+)\s*\/\s*(\d+)/g, (m, a, b) => (parseFloat(a)/parseFloat(b)).toString());
+      // Handle "1 1/2" or "1 0.5" compound numbers
+      const parts = numStr.trim().split(/\s+/).filter(p => p);
+      if (parts.length > 0) {
+        amount = parts.reduce((sum, p) => sum + (parseFloat(p) || 0), 0);
+      }
+      name = clean.slice(numMatch[0].length).trim();
+    }
+
+    // Try to extract a unit
+    const unitMatch = name.match(unitPattern);
+    if (unitMatch) {
+      const matchedUnit = unitMatch[1].toLowerCase();
+      if (unitMap[matchedUnit]) {
+        unit = unitMap[matchedUnit];
+        if (unit === 'piece') unit = 'g'; // default piece to grams
+        name = name.slice(unitMatch[0].length).trim();
+      }
+    }
+
+    // Clean up ingredient name
+    name = name.replace(/^of\s+/i, '').replace(/,.*$/, '').replace(/\(.*?\)/g, '').trim();
+    if (!name) return;
+
+    // Default amount if none found
+    if (!amount || amount <= 0) amount = 100;
+    // If unit is piece-like, estimate grams
+    if (unit === 'g' && amount < 20 && !unitMatch) {
+      // Small number with no unit probably means count, estimate ~100g each
+      amount = amount * 100;
+    }
+
+    // Try to match to our database
+    const nameLower = name.toLowerCase();
+    let dbMatch = foodDB.find(f => f.name.toLowerCase() === nameLower);
+    if (!dbMatch) dbMatch = foodDB.find(f => nameLower.includes(f.name.toLowerCase().split('(')[0].trim().toLowerCase()));
+    if (!dbMatch) dbMatch = foodDB.find(f => f.name.toLowerCase().split('(')[0].trim().toLowerCase().split(' ').some(w => w.length > 3 && nameLower.includes(w)));
+
+    // Add ingredient row
+    addIngredient();
+    const id = ingredientCount;
+    document.getElementById('ing-name-' + id).value = dbMatch ? dbMatch.name : name;
+    document.getElementById('ing-amt-' + id).value = parseFloat(amount.toFixed(1));
+
+    // Set unit dropdown
+    const unitSelect = document.getElementById('ing-unit-' + id);
+    const unitOptions = Array.from(unitSelect.options).map(o => o.value);
+    if (unitOptions.includes(unit)) {
+      unitSelect.value = unit;
+    }
+
+    if (dbMatch) matched++;
+    else unmatched.push(name);
+  });
+
+  // Show status
+  status.style.display = 'block';
+  if (ingredientCount === 0) {
+    status.style.background = 'var(--red-light)';
+    status.style.color = 'var(--red)';
+    status.textContent = "Couldn't find any ingredients. Try pasting just the ingredient list.";
+  } else if (unmatched.length > 0) {
+    status.style.background = 'var(--accent-light)';
+    status.style.color = 'var(--accent-hover)';
+    status.innerHTML = `✅ Found <strong>${ingredientCount}</strong> ingredients (${matched} matched to our database). <br>⚠️ Not in database: ${unmatched.join(', ')} — these will show "?" for nutrition.`;
+  } else {
+    status.style.background = 'var(--green-light)';
+    status.style.color = 'var(--green)';
+    status.textContent = `✅ Found ${ingredientCount} ingredients — all matched! Hit "Calculate Nutrition" below.`;
+  }
+}
+
 // ====== INIT ======
 updateUnitOptions();
-addIngredient();
-addIngredient();
 addIngredient();
 </script>
 </body>
 </html>
-
