@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecipeCalc — Recipe Unit Converter & Macro Tracker</title>
+<meta name="description" content="Free recipe unit converter and calorie & macro calculator. Convert cups to grams, tablespoons to milliliters, and calculate nutrition for your recipes.">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --surface-alt: #f3efe8;
+    --text: #2c2416;
+    --text-muted: #8a7e6b;
+    --accent: #e07a3a;
+    --accent-hover: #c96a2f;
+    --accent-light: #fdf0e7;
+    --green: #5a9e6f;
+    --green-light: #edf6ef;
+    --blue: #4a7fb5;
+    --blue-light: #ebf2f9;
+    --red: #c75454;
+    --red-light: #fceaea;
+    --border: #e8e2d8;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(44,36,22,0.06);
+    --shadow-lg: 0 8px 30px rgba(44,36,22,0.1);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .tagline {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem 0;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* MAIN */
+  main {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .card-title .icon { font-size: 1.3rem; }
+
+  /* FORMS */
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  input, select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a7e6b' stroke-width='2' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 2.2rem; }
+
+  .row { display: flex; gap: 0.75rem; margin-bottom: 0.85rem; }
+  .row > * { flex: 1; }
+
+  .swap-btn {
+    align-self: flex-end;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border: 2px solid var(--border);
+    background: var(--surface-alt);
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-bottom: 0.85rem;
+  }
+  .swap-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+
+  .result-box {
+    background: var(--surface-alt);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  .result-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .result-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  /* MACRO TRACKER */
+  .ingredient-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.65rem;
+    animation: fadeUp 0.25s ease;
+  }
+  .ingredient-row .ing-name { flex: 2; }
+  .ingredient-row .ing-amount { flex: 1; }
+  .ingredient-row .ing-unit { flex: 1; }
+
+  .remove-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: none;
+    background: var(--red-light);
+    color: var(--red);
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-bottom: 0;
+  }
+  .remove-btn:hover { background: var(--red); color: #fff; }
+
+  .add-btn {
+    width: 100%;
+    padding: 0.6rem;
+    border: 2px dashed var(--border);
+    background: transparent;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.25rem;
+  }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .calc-btn {
+    width: 100%;
+    padding: 0.8rem;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1rem;
+  }
+  .calc-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+
+  .servings-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--surface-alt);
+    border-radius: 8px;
+  }
+  .servings-row label { margin: 0; text-transform: none; font-size: 0.9rem; }
+  .servings-row input {
+    width: 60px;
+    text-align: center;
+    padding: 0.4rem;
+    font-weight: 600;
+  }
+
+  /* MACRO RESULTS */
+  .macro-results { display: none; margin-top: 1.25rem; }
+  .macro-results.visible { display: block; }
+
+  .macro-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+  .macro-card {
+    text-align: center;
+    padding: 0.85rem 0.4rem;
+    border-radius: 10px;
+    animation: fadeUp 0.35s ease;
+  }
+  .macro-card.cal { background: var(--accent-light); }
+  .macro-card.protein { background: var(--green-light); }
+  .macro-card.carbs { background: var(--blue-light); }
+  .macro-card.fat { background: var(--red-light); }
+  .macro-card .num {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .macro-card.cal .num { color: var(--accent); }
+  .macro-card.protein .num { color: var(--green); }
+  .macro-card.carbs .num { color: var(--blue); }
+  .macro-card.fat .num { color: var(--red); }
+  .macro-card .lbl {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .breakdown-table th {
+    text-align: left;
+    padding: 0.5rem 0.4rem;
+    border-bottom: 2px solid var(--border);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .breakdown-table td {
+    padding: 0.45rem 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table .right { text-align: right; }
+
+  .per-serving {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
+  /* AUTOCOMPLETE */
+  .autocomplete-wrapper { position: relative; }
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+    box-shadow: var(--shadow-lg);
+  }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item {
+    padding: 0.5rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+  }
+  .autocomplete-item:hover, .autocomplete-item.highlighted { background: var(--accent-light); }
+  .autocomplete-item .cat {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+  }
+
+  /* SECTION TOGGLE */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 480px) {
+    .macro-grid { grid-template-columns: repeat(2, 1fr); }
+    .row { flex-wrap: wrap; }
+    .ingredient-row { flex-wrap: wrap; }
+    .ingredient-row .ing-name { flex: 1 1 100%; }
+    .ingredient-row .ing-amount { flex: 1; }
+    .ingredient-row .ing-unit { flex: 1; }
+    .logo { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Recipe<span>Calc</span></div>
+  <p class="tagline">Unit converter & nutrition calculator</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('converter')">⚖️ Converter</button>
+  <button class="tab-btn" onclick="switchTab('macros')">🥗 Macros</button>
+</div>
+
+<main>
+  <!-- UNIT CONVERTER SECTION -->
+  <div id="converter-section" class="section active">
+    <div class="card">
+      <div class="card-title"><span class="icon">📏</span> Unit Converter</div>
+      <div>
+        <label>Category</label>
+        <select id="conv-category" onchange="updateUnitOptions()">
+          <option value="volume">Volume</option>
+          <option value="weight">Weight</option>
+          <option value="temperature">Temperature</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:0.85rem">
+        <div>
+          <label>Amount</label>
+          <input type="number" id="conv-amount" value="1" step="any" oninput="convert()">
+        </div>
+        <div>
+          <label>From</label>
+          <select id="conv-from" onchange="convert()"></select>
+        </div>
+        <button class="swap-btn" onclick="swapUnits()" title="Swap units">⇄</button>
+        <div>
+          <label>To</label>
+          <select id="conv-to" onchange="convert()"></select>
+        </div>
+      </div>
+      <div class="result-box">
+        <div class="result-value" id="conv-result">—</div>
+        <div class="result-label" id="conv-result-label">Enter an amount to convert</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🥄</span> Common Cooking Conversions</div>
+      <div id="quick-ref" style="font-size:0.88rem; color:var(--text-muted); line-height:1.9;">
+        1 cup = 240 ml = 16 tbsp<br>
+        1 tbsp = 15 ml = 3 tsp<br>
+        1 oz = 28.35 g<br>
+        1 lb = 453.6 g = 16 oz<br>
+        1 kg = 2.205 lb<br>
+        1 fl oz = 29.57 ml<br>
+        1 stick butter = 113 g = ½ cup
+      </div>
+    </div>
+  </div>
+
+  <!-- MACROS SECTION -->
+  <div id="macros-section" class="section">
+    <div class="card">
+      <div class="card-title"><span class="icon">🥗</span> Recipe Ingredients</div>
+      <div class="servings-row">
+        <label>Servings:</label>
+        <input type="number" id="servings" value="4" min="1" max="100">
+      </div>
+      <div id="ingredients-list"></div>
+      <button class="add-btn" onclick="addIngredient()">+ Add Ingredient</button>
+      <button class="calc-btn" onclick="calculateMacros()">Calculate Nutrition</button>
+    </div>
+
+    <div class="macro-results" id="macro-results">
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span> Total Recipe Nutrition</div>
+        <div class="macro-grid">
+          <div class="macro-card cal"><div class="num" id="total-cal">0</div><div class="lbl">Calories</div></div>
+          <div class="macro-card protein"><div class="num" id="total-protein">0g</div><div class="lbl">Protein</div></div>
+          <div class="macro-card carbs"><div class="num" id="total-carbs">0g</div><div class="lbl">Carbs</div></div>
+          <div class="macro-card fat"><div class="num" id="total-fat">0g</div><div class="lbl">Fat</div></div>
+        </div>
+        <div class="per-serving" id="per-serving-text"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Ingredient Breakdown</div>
+        <table class="breakdown-table">
+          <thead>
+            <tr><th>Ingredient</th><th class="right">Cal</th><th class="right">P</th><th class="right">C</th><th class="right">F</th></tr>
+          </thead>
+          <tbody id="breakdown-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Built with ❤️ — <a href="#">RecipeCalc</a> — Free & open source
+</footer>
+
+<script>
+// ====== UNIT CONVERTER ======
+const conversions = {
+  volume: {
+    units: ['cup','tbsp','tsp','ml','l','fl oz','pint','quart','gallon'],
+    toBase: { // everything to ml
+      'cup':240,'tbsp':14.787,'tsp':4.929,'ml':1,'l':1000,
+      'fl oz':29.574,'pint':473.176,'quart':946.353,'gallon':3785.41
+    }
+  },
+  weight: {
+    units: ['g','kg','oz','lb','mg'],
+    toBase: { // everything to grams
+      'g':1,'kg':1000,'oz':28.3495,'lb':453.592,'mg':0.001
+    }
+  },
+  temperature: {
+    units: ['°F','°C','K'],
+    custom: true
+  }
+};
+
+function updateUnitOptions() {
+  const cat = document.getElementById('conv-category').value;
+  const fromSel = document.getElementById('conv-from');
+  const toSel = document.getElementById('conv-to');
+  const units = conversions[cat].units;
+  fromSel.innerHTML = units.map(u => `<option>${u}</option>`).join('');
+  toSel.innerHTML = units.map(u => `<option>${u}</option>`).join('');
+  if (units.length > 1) toSel.selectedIndex = 1;
+  convert();
+}
+
+function convert() {
+  const cat = document.getElementById('conv-category').value;
+  const amount = parseFloat(document.getElementById('conv-amount').value);
+  const from = document.getElementById('conv-from').value;
+  const to = document.getElementById('conv-to').value;
+  const resEl = document.getElementById('conv-result');
+  const labelEl = document.getElementById('conv-result-label');
+
+  if (isNaN(amount)) { resEl.textContent = '—'; labelEl.textContent = 'Enter an amount'; return; }
+
+  let result;
+  if (cat === 'temperature') {
+    result = convertTemp(amount, from, to);
+  } else {
+    const base = amount * conversions[cat].toBase[from];
+    result = base / conversions[cat].toBase[to];
+  }
+
+  const formatted = result % 1 === 0 ? result : result.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  resEl.textContent = formatted;
+  labelEl.textContent = `${amount} ${from} = ${formatted} ${to}`;
+}
+
+function convertTemp(val, from, to) {
+  let celsius;
+  if (from === '°C') celsius = val;
+  else if (from === '°F') celsius = (val - 32) * 5/9;
+  else celsius = val - 273.15;
+
+  if (to === '°C') return celsius;
+  if (to === '°F') return celsius * 9/5 + 32;
+  return celsius + 273.15;
+}
+
+function swapUnits() {
+  const f = document.getElementById('conv-from');
+  const t = document.getElementById('conv-to');
+  const tmp = f.value;
+  f.value = t.value;
+  t.value = tmp;
+  convert();
+}
+
+// ====== FOOD DATABASE (common items, per 100g) ======
+const foodDB = [
+  { name:'Chicken Breast', cat:'Meat', cal:165, protein:31, carbs:0, fat:3.6 },
+  { name:'Ground Beef (85%)', cat:'Meat', cal:250, protein:26, carbs:0, fat:15 },
+  { name:'Salmon', cat:'Fish', cal:208, protein:20, carbs:0, fat:13 },
+  { name:'Shrimp', cat:'Fish', cal:99, protein:24, carbs:0.2, fat:0.3 },
+  { name:'Tuna (canned)', cat:'Fish', cal:116, protein:26, carbs:0, fat:0.8 },
+  { name:'Egg (1 large = 50g)', cat:'Dairy', cal:155, protein:13, carbs:1.1, fat:11 },
+  { name:'Whole Milk', cat:'Dairy', cal:61, protein:3.2, carbs:4.8, fat:3.3 },
+  { name:'Cheddar Cheese', cat:'Dairy', cal:403, protein:25, carbs:1.3, fat:33 },
+  { name:'Greek Yogurt', cat:'Dairy', cal:59, protein:10, carbs:3.6, fat:0.4 },
+  { name:'Butter', cat:'Dairy', cal:717, protein:0.9, carbs:0.1, fat:81 },
+  { name:'Cream Cheese', cat:'Dairy', cal:342, protein:6, carbs:4, fat:34 },
+  { name:'Mozzarella', cat:'Dairy', cal:280, protein:28, carbs:3.1, fat:17 },
+  { name:'Parmesan', cat:'Dairy', cal:431, protein:38, carbs:4, fat:29 },
+  { name:'White Rice (cooked)', cat:'Grains', cal:130, protein:2.7, carbs:28, fat:0.3 },
+  { name:'Brown Rice (cooked)', cat:'Grains', cal:112, protein:2.3, carbs:24, fat:0.8 },
+  { name:'Pasta (cooked)', cat:'Grains', cal:131, protein:5, carbs:25, fat:1.1 },
+  { name:'Bread (white)', cat:'Grains', cal:265, protein:9, carbs:49, fat:3.2 },
+  { name:'Bread (whole wheat)', cat:'Grains', cal:247, protein:13, carbs:41, fat:3.4 },
+  { name:'Oats (dry)', cat:'Grains', cal:389, protein:17, carbs:66, fat:6.9 },
+  { name:'Flour (all-purpose)', cat:'Grains', cal:364, protein:10, carbs:76, fat:1 },
+  { name:'Tortilla (flour)', cat:'Grains', cal:312, protein:8, carbs:52, fat:8 },
+  { name:'Potato', cat:'Vegetables', cal:77, protein:2, carbs:17, fat:0.1 },
+  { name:'Sweet Potato', cat:'Vegetables', cal:86, protein:1.6, carbs:20, fat:0.1 },
+  { name:'Broccoli', cat:'Vegetables', cal:34, protein:2.8, carbs:7, fat:0.4 },
+  { name:'Spinach', cat:'Vegetables', cal:23, protein:2.9, carbs:3.6, fat:0.4 },
+  { name:'Carrot', cat:'Vegetables', cal:41, protein:0.9, carbs:10, fat:0.2 },
+  { name:'Tomato', cat:'Vegetables', cal:18, protein:0.9, carbs:3.9, fat:0.2 },
+  { name:'Onion', cat:'Vegetables', cal:40, protein:1.1, carbs:9.3, fat:0.1 },
+  { name:'Bell Pepper', cat:'Vegetables', cal:31, protein:1, carbs:6, fat:0.3 },
+  { name:'Garlic', cat:'Vegetables', cal:149, protein:6.4, carbs:33, fat:0.5 },
+  { name:'Mushrooms', cat:'Vegetables', cal:22, protein:3.1, carbs:3.3, fat:0.3 },
+  { name:'Avocado', cat:'Vegetables', cal:160, protein:2, carbs:9, fat:15 },
+  { name:'Corn', cat:'Vegetables', cal:86, protein:3.3, carbs:19, fat:1.4 },
+  { name:'Zucchini', cat:'Vegetables', cal:17, protein:1.2, carbs:3.1, fat:0.3 },
+  { name:'Banana', cat:'Fruit', cal:89, protein:1.1, carbs:23, fat:0.3 },
+  { name:'Apple', cat:'Fruit', cal:52, protein:0.3, carbs:14, fat:0.2 },
+  { name:'Strawberry', cat:'Fruit', cal:32, protein:0.7, carbs:7.7, fat:0.3 },
+  { name:'Blueberry', cat:'Fruit', cal:57, protein:0.7, carbs:14, fat:0.3 },
+  { name:'Lemon Juice', cat:'Fruit', cal:22, protein:0.4, carbs:6.9, fat:0.2 },
+  { name:'Orange', cat:'Fruit', cal:47, protein:0.9, carbs:12, fat:0.1 },
+  { name:'Olive Oil', cat:'Oils', cal:884, protein:0, carbs:0, fat:100 },
+  { name:'Vegetable Oil', cat:'Oils', cal:884, protein:0, carbs:0, fat:100 },
+  { name:'Coconut Oil', cat:'Oils', cal:862, protein:0, carbs:0, fat:100 },
+  { name:'Sugar (white)', cat:'Pantry', cal:387, protein:0, carbs:100, fat:0 },
+  { name:'Brown Sugar', cat:'Pantry', cal:380, protein:0, carbs:98, fat:0 },
+  { name:'Honey', cat:'Pantry', cal:304, protein:0.3, carbs:82, fat:0 },
+  { name:'Maple Syrup', cat:'Pantry', cal:260, protein:0, carbs:67, fat:0.1 },
+  { name:'Peanut Butter', cat:'Pantry', cal:588, protein:25, carbs:20, fat:50 },
+  { name:'Almond Butter', cat:'Pantry', cal:614, protein:21, carbs:19, fat:56 },
+  { name:'Almonds', cat:'Nuts', cal:579, protein:21, carbs:22, fat:50 },
+  { name:'Walnuts', cat:'Nuts', cal:654, protein:15, carbs:14, fat:65 },
+  { name:'Cashews', cat:'Nuts', cal:553, protein:18, carbs:30, fat:44 },
+  { name:'Black Beans (cooked)', cat:'Legumes', cal:132, protein:9, carbs:24, fat:0.5 },
+  { name:'Chickpeas (cooked)', cat:'Legumes', cal:164, protein:9, carbs:27, fat:2.6 },
+  { name:'Lentils (cooked)', cat:'Legumes', cal:116, protein:9, carbs:20, fat:0.4 },
+  { name:'Tofu (firm)', cat:'Protein', cal:144, protein:17, carbs:3, fat:8 },
+  { name:'Bacon', cat:'Meat', cal:541, protein:37, carbs:1.4, fat:42 },
+  { name:'Sausage (pork)', cat:'Meat', cal:301, protein:18, carbs:0, fat:25 },
+  { name:'Turkey Breast', cat:'Meat', cal:135, protein:30, carbs:0, fat:1 },
+  { name:'Sour Cream', cat:'Dairy', cal:198, protein:2.4, carbs:4.6, fat:19 },
+  { name:'Heavy Cream', cat:'Dairy', cal:340, protein:2.8, carbs:2.8, fat:36 },
+  { name:'Cocoa Powder', cat:'Pantry', cal:228, protein:20, carbs:58, fat:14 },
+  { name:'Chocolate (dark)', cat:'Pantry', cal:546, protein:5, carbs:60, fat:31 },
+  { name:'Soy Sauce', cat:'Pantry', cal:53, protein:8, carbs:5, fat:0.6 },
+];
+
+// ====== MACRO TRACKER ======
+let ingredientCount = 0;
+
+function addIngredient() {
+  ingredientCount++;
+  const id = ingredientCount;
+  const div = document.createElement('div');
+  div.className = 'ingredient-row';
+  div.id = `ing-row-${id}`;
+  div.innerHTML = `
+    <div class="ing-name autocomplete-wrapper">
+      ${ingredientCount === 1 ? '<label>Ingredient</label>' : ''}
+      <input type="text" placeholder="Type to search..." id="ing-name-${id}" oninput="showSuggestions(${id})" onfocus="showSuggestions(${id})" autocomplete="off">
+      <div class="autocomplete-list" id="ac-list-${id}"></div>
+    </div>
+    <div class="ing-amount">
+      ${ingredientCount === 1 ? '<label>Amount</label>' : ''}
+      <input type="number" placeholder="100" id="ing-amt-${id}" step="any">
+    </div>
+    <div class="ing-unit">
+      ${ingredientCount === 1 ? '<label>Unit</label>' : ''}
+      <select id="ing-unit-${id}">
+        <option value="g">g</option>
+        <option value="oz">oz</option>
+        <option value="cup">cup</option>
+        <option value="tbsp">tbsp</option>
+        <option value="tsp">tsp</option>
+        <option value="ml">ml</option>
+        <option value="lb">lb</option>
+        <option value="kg">kg</option>
+      </select>
+    </div>
+    <button class="remove-btn" onclick="removeIngredient(${id})">×</button>
+  `;
+  document.getElementById('ingredients-list').appendChild(div);
+
+  // Close autocomplete on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest(`#ing-row-${id}`)) {
+      const list = document.getElementById(`ac-list-${id}`);
+      if (list) list.classList.remove('open');
+    }
+  });
+}
+
+function removeIngredient(id) {
+  const row = document.getElementById(`ing-row-${id}`);
+  if (row) row.remove();
+}
+
+function showSuggestions(id) {
+  const input = document.getElementById(`ing-name-${id}`);
+  const list = document.getElementById(`ac-list-${id}`);
+  const val = input.value.toLowerCase().trim();
+
+  if (!val) { list.classList.remove('open'); return; }
+
+  const matches = foodDB.filter(f => f.name.toLowerCase().includes(val)).slice(0, 8);
+  if (matches.length === 0) { list.classList.remove('open'); return; }
+
+  list.innerHTML = matches.map(f =>
+    `<div class="autocomplete-item" onclick="selectFood(${id},'${f.name.replace(/'/g,"\\'")}')">
+      ${f.name}<span class="cat">${f.cat}</span>
+    </div>`
+  ).join('');
+  list.classList.add('open');
+}
+
+function selectFood(id, name) {
+  document.getElementById(`ing-name-${id}`).value = name;
+  document.getElementById(`ac-list-${id}`).classList.remove('open');
+}
+
+function convertToGrams(amount, unit) {
+  const factors = {
+    'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592,
+    'cup': 240, 'tbsp': 14.787, 'tsp': 4.929, 'ml': 1
+  };
+  return amount * (factors[unit] || 1);
+}
+
+function calculateMacros() {
+  const rows = document.querySelectorAll('.ingredient-row');
+  let totalCal=0, totalP=0, totalC=0, totalF=0;
+  const breakdown = [];
+
+  rows.forEach(row => {
+    const nameInput = row.querySelector('input[type="text"]');
+    const amtInput = row.querySelector('input[type="number"]');
+    const unitSelect = row.querySelector('select');
+    if (!nameInput || !amtInput) return;
+
+    const name = nameInput.value.trim();
+    const amount = parseFloat(amtInput.value);
+    const unit = unitSelect.value;
+    if (!name || isNaN(amount) || amount <= 0) return;
+
+    const food = foodDB.find(f => f.name.toLowerCase() === name.toLowerCase());
+    if (!food) {
+      breakdown.push({ name, cal:'?', p:'?', c:'?', f:'?' });
+      return;
+    }
+
+    const grams = convertToGrams(amount, unit);
+    const mult = grams / 100;
+    const cal = Math.round(food.cal * mult);
+    const p = +(food.protein * mult).toFixed(1);
+    const c = +(food.carbs * mult).toFixed(1);
+    const f = +(food.fat * mult).toFixed(1);
+
+    totalCal += cal; totalP += p; totalC += c; totalF += f;
+    breakdown.push({ name, cal, p, c, f });
+  });
+
+  const servings = parseInt(document.getElementById('servings').value) || 1;
+
+  document.getElementById('total-cal').textContent = totalCal;
+  document.getElementById('total-protein').textContent = totalP.toFixed(1) + 'g';
+  document.getElementById('total-carbs').textContent = totalC.toFixed(1) + 'g';
+  document.getElementById('total-fat').textContent = totalF.toFixed(1) + 'g';
+
+  const perCal = Math.round(totalCal/servings);
+  const perP = (totalP/servings).toFixed(1);
+  const perC = (totalC/servings).toFixed(1);
+  const perF = (totalF/servings).toFixed(1);
+  document.getElementById('per-serving-text').textContent =
+    `Per serving (${servings}): ${perCal} cal · ${perP}g protein · ${perC}g carbs · ${perF}g fat`;
+
+  const tbody = document.getElementById('breakdown-body');
+  tbody.innerHTML = breakdown.map(b =>
+    `<tr><td>${b.name}</td><td class="right">${b.cal}</td><td class="right">${b.p}</td><td class="right">${b.c}</td><td class="right">${b.f}</td></tr>`
+  ).join('');
+
+  document.getElementById('macro-results').classList.add('visible');
+}
+
+// ====== TAB SWITCHING ======
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+
+  if (tab === 'converter') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('converter-section').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('macros-section').classList.add('active');
+  }
+}
+
+// ====== INIT ======
+updateUnitOptions();
+addIngredient();
+addIngredient();
+addIngredient();
+</script>
+</body>
+</html>
