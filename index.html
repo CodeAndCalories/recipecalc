@@ -738,7 +738,10 @@ function calculateMacros() {
     const unit = unitSelect.value;
     if (!name || isNaN(amount) || amount <= 0) return;
 
-    const food = foodDB.find(f => f.name.toLowerCase() === name.toLowerCase());
+    // Try exact match first, then partial match
+    let food = foodDB.find(f => f.name.toLowerCase() === name.toLowerCase());
+    if (!food) food = foodDB.find(f => f.name.toLowerCase().startsWith(name.toLowerCase()));
+    if (!food) food = foodDB.find(f => f.name.toLowerCase().includes(name.toLowerCase()));
     if (!food) {
       breakdown.push({ name, cal:'?', p:'?', c:'?', f:'?' });
       return;
